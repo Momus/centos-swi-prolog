@@ -1,79 +1,4 @@
-#+TITLE:  SWI Prolog CentOS Docker Container
-#+AUTHOR: Dmitri Brengauz
-#+EMAIL:  dmitri@momus.net
-#+DATE:   [2016-06-11 Sat]
-#+TAGS:   docker CentOS prolog 
-#+DESCRIPTION: Fires up a nice, clean Docker Prolog develomplent environment.
 
-* README
-  #+BEGIN_SRC markdown :tangle ./README.md
-      # CentOS Docker Container for SWI Proglog Development
-      
-      This repo is built using a single file:
-      `./CentOS-SWI-Prolog.org`. It uses Org-Mode Babel to generate this
-      file, as well as all others.
-  #+END_SRC
-
-
-* Dockerfile
-  #+BEGIN_SRC sh :tangle ./Dockerfile
-#Version 0.0.1
-FROM centos
-MAINTAINER Dmitri Brengauz <dmitri@momus.net>
-LABEL "rating"="One Star" 
-USER root
-ENV SRC_PATH "/swipl/"
-
-#Install git and dependencies to build Prolog; grab the source from Github
-RUN yum update -y \
-    &&  yum groupinstall -y "Development Tools" \
-    && yum install -y \
-           git \
-           autoconf \
-           chrpath \
-           libunwind \
-           freetype-devel \
-           gmp-devel \
-           java-1.8.0-openjdk-devel \
-           jpackage-utils \
-           libICE-devel \
-           libjpeg-devel \
-           libSM-devel \
-           libX11-devel \
-           libXaw-devel \
-           libXext-devel \
-           libXft-devel \
-           libXinerama-devel \
-           libXmu-devel \
-           libXpm-devel \
-           libXrender-devel \
-           libXt-devel \
-           ncurses-devel \
-           openssl-devel \
-           pkgconfig \
-           readline-devel \
-           unixODBC-devel \
-           zlib-devel \
-           uuid-devel \
-           libarchive-devel \
-    &&  git clone  https://github.com/SWI-Prolog/swipl.git
-
-ADD ./build.sh /swipl/build.sh
-
-#Build Prolog
-RUN cd swipl ; ./prepare --yes --all ; chmod +x build.sh ; ./build.sh
-
-CMD ["bash"]
-  #+END_SRC
-
-*** .dockerignore
-    #+BEGIN_SRC sh :tangle ./.dockerignore
-    .git
-    Vagrantfile
-    #+END_SRC
-
-*** build.sh
-    #+BEGIN_SRC sh :tangle build.sh
 #!/usr/bin/env bash
 #
 # This is the script we use to   build  SWI-Prolog and all its packages.
@@ -110,11 +35,11 @@ MAKE='make --jobs=4'
 
 # [EDIT] Compiler and options.
 #
-#	CC:	 Which C-compiler to use
-#	COFLAGS: Flags for the optimizer such as "-O3" or "-g"
-#	CMFLAGS: Machine flags such as "-m64" (64-bits on gcc)
-#	CIFLAGS: Include-path such as "-I/opt/include"
-#	LDFLAGS: Link flags such as "-L/opt/lib"
+#       CC:      Which C-compiler to use
+#       COFLAGS: Flags for the optimizer such as "-O3" or "-g"
+#       CMFLAGS: Machine flags such as "-m64" (64-bits on gcc)
+#       CIFLAGS: Include-path such as "-I/opt/include"
+#       LDFLAGS: Link flags such as "-L/opt/lib"
 #
 # Leaving an option blank leaves the  choice to configure. The commented
 # values below enable much better C-level debugging with almost the same
@@ -134,7 +59,7 @@ MAKE='make --jobs=4'
 # [EDIT] Packages to configure. Leaving it   blank  compiles all default
 # packages. The final set of packages is
 #
-#	${PKG-<default>} + $EXTRA_PKGS - $DISABLE_PKGS
+#       ${PKG-<default>} + $EXTRA_PKGS - $DISABLE_PKGS
 
 # export PKG=
 
@@ -207,26 +132,26 @@ setvars=false
 
 while test "$done" = false; do
 case "$1" in
-   --config)	make=false
-		install=false
-		shift
-		;;
-   --make)	config=false
-		install=false
-		shift
-		;;
-   --install)	config=false
-		make=false
-		shift
-		;;
+   --config)    make=false
+                install=false
+                shift
+                ;;
+   --make)      config=false
+                install=false
+                shift
+                ;;
+   --install)   config=false
+                make=false
+                shift
+                ;;
    --prefix=*)  PREFIX=`echo "$1" | sed 's/--prefix=//'`
-		shift
-		;;
-   --setvars)	setvars=true
-		shift
-		;;
-   *)		done=true
-		;;
+                shift
+                ;;
+   --setvars)   setvars=true
+                shift
+                ;;
+   *)           done=true
+                ;;
 esac
 done
 
@@ -260,79 +185,3 @@ if [ "$setvars" = "false" ]; then
   # See whether any package failed to build
   ./packages/report-failed || exit 1
 fi # setvars
-    #+END_SRC
-    
-* Vagrantfile
-  #+BEGIN_SRC ruby :tangle ./Vagrantfile
-ENV['VAGRANT_DEFAULT_PROVIDER'] = 'docker'
-
-  Vagrant.configure(2) do |config|
-
-  #config.vm.box = "momus/centos-swi-prolog"
-  #
-  #config.vm.network  = "public_network"
-  #config.vm.synced_folder = "." , "/vagrant"
-  
-  config.vm.provider "docker"  do |docker|
-
-    docker.image = "momus/centos-swi-prolog"
-    docker.name = "swi_prolog_devel"
-    docker.remains_running = false
-  end
-end
-  #+END_SRC
-
-
-* Build
-  #+BEGIN_SRC sh :dir .
-  docker build -t="momus/centos-swi-prolog" .
-  #+END_SRC
-
-  #+RESULTS:
-
-
-* Cheat Sheet:
-
-*** Commit
-    docker commit [container ID] [image name]
-
-*** Push
-    docker push my_username/my_image_name
-
-*** ps
-    - running and non:running docker ps -l
-*** running
-    - docker run [image_name] [command to run]
-
-*** removing
-    docker rm [container ID]
-
-*** Commands
-    - ADD :: copies file from source on host to container's file system
-             ADD /my_host_dir /my_container_dir
-    - CMD :: execute command after image is built and created
-             #Usage CMD application "argument" "argument"
-             CMD "echo" "Hello docker!"
-    - ENTRYPOINT :: sets a default application for container, can be used with CMD:
-                    CMD "Hello docker!"
-                    ENTRYPOINT echo
-    - ENV :: sets key = value pairs for container
-             ENV SERVER_WORKS 4
-    - EXPOSE :: associate a specified port to enable networking on container
-                EXPOSE 8080
-    - FROM :: defines base image to use to start the build process
-              FROM [image name]
-    - MAINTAINER :: should come after FROM. Declares the maintainer of image
-                    MAINTAINER Author's Name "her@email.org"
-    - RUN :: execute a command to form the image. RUN commands are
-             layered on top of each other
-             RUN yum install -y git
-    - USER :: sets the UID/user name which is to tun container based
-              on image being built. Defaults to "root" if not set.
-              USER root
-    - VOLUME :: enables access (mounts) to your container from  a directory on the host machine
-                VOLUME ["./my_files" , "./some_more_files"]
-    - WORKDIR :: set where the command defined with CMD is executed.
-                 WORKDIR ~/src
-
-#  LocalWords:  ENTRYPOINT CMD ps ENV UID WORKDIR
